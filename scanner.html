@@ -1,0 +1,58 @@
+import React, { useRef, useState } from "react";
+import Webcam from "react-webcam";
+import axios from "axios";
+import Tesseract from "tesseract.js";
+
+function Scanner() {
+  const webcamRef = useRef(null);
+  const [result, setResult] = useState("");
+
+  const capture = async (type) => {
+    const imageSrc = webcamRef.current.getScreenshot();
+
+    if (type === "fake") {
+      const res = await axios.post("http://localhost:5000/fake", {
+        image: imageSrc,
+      });
+      setResult(res.data.result);
+    }
+
+    if (type === "face") {
+      const res = await axios.post("http://localhost:5000/face", {
+        image: imageSrc,
+      });
+      setResult(res.data.result);
+    }
+
+    if (type === "ingredient") {
+      Tesseract.recognize(imageSrc, "eng").then(({ data: { text } }) => {
+        axios
+          .post("http://localhost:5000/ingredient", { text })
+          .then((res) => setResult(res.data.result));
+      });
+    }
+  };
+
+  return (
+    <div>
+      <Webcam ref={webcamRef} screenshotFormat="image/jpeg" />
+      <br /><br />
+
+      <button onClick={() => capture("fake")}>
+        Fake Product Detection
+      </button>
+
+      <button onClick={() => capture("face")}>
+        Face Colour Analysis
+      </button>
+
+      <button onClick={() => capture("ingredient")}>
+        Ingredient Scanner
+      </button>
+
+      <h2>{result}</h2>
+    </div>
+  );
+}
+
+export default Scanner;
